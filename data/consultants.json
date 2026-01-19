@@ -1,0 +1,125 @@
+{
+  "last_id": 21,
+  "items": [
+    {
+      "id": 2,
+      "name": "Mats Pedersen",
+      "salary": 791310,
+      "default_utilization": 0.86
+    },
+    {
+      "id": 3,
+      "name": "Kari Hansen",
+      "salary": 872808,
+      "default_utilization": 0.87
+    },
+    {
+      "id": 4,
+      "name": "Ola Johansen",
+      "salary": 708489,
+      "default_utilization": 0.83
+    },
+    {
+      "id": 5,
+      "name": "Henrik Pedersen",
+      "salary": 851074,
+      "default_utilization": 0.88
+    },
+    {
+      "id": 6,
+      "name": "Nora Pedersen",
+      "salary": 743242,
+      "default_utilization": 0.85
+    },
+    {
+      "id": 7,
+      "name": "Ola Hansen",
+      "salary": 876030,
+      "default_utilization": 0.71
+    },
+    {
+      "id": 8,
+      "name": "Per Pedersen",
+      "salary": 673596,
+      "default_utilization": 0.82
+    },
+    {
+      "id": 9,
+      "name": "Kari Nordmann",
+      "salary": 610453,
+      "default_utilization": 0.81
+    },
+    {
+      "id": 10,
+      "name": "Ola Andersen",
+      "salary": 655097,
+      "default_utilization": 0.85
+    },
+    {
+      "id": 11,
+      "name": "Henrik Johansen",
+      "salary": 767698,
+      "default_utilization": 0.86
+    },
+    {
+      "id": 12,
+      "name": "Nora Pedersen",
+      "salary": 814249,
+      "default_utilization": 0.77
+    },
+    {
+      "id": 13,
+      "name": "Per Larsen",
+      "salary": 612787,
+      "default_utilization": 0.8
+    },
+    {
+      "id": 14,
+      "name": "Henrik Nordmann",
+      "salary": 749433,
+      "default_utilization": 0.88
+    },
+    {
+      "id": 15,
+      "name": "Eva Nordmann",
+      "salary": 608742,
+      "default_utilization": 0.78
+    },
+    {
+      "id": 16,
+      "name": "Anne Hansen",
+      "salary": 699778,
+      "default_utilization": 0.74
+    },
+    {
+      "id": 17,
+      "name": "Per Nordmann",
+      "salary": 692813,
+      "default_utilization": 0.87
+    },
+    {
+      "id": 18,
+      "name": "Anne Johansen",
+      "salary": 645119,
+      "default_utilization": 0.8
+    },
+    {
+      "id": 19,
+      "name": "Ola Pedersen",
+      "salary": 633892,
+      "default_utilization": 0.81
+    },
+    {
+      "id": 20,
+      "name": "Anne Nordmann",
+      "salary": 756625,
+      "default_utilization": 0.88
+    },
+    {
+      "id": 21,
+      "name": "Henrik Larsen",
+      "salary": 624433,
+      "default_utilization": 0.72
+    }
+  ]
+}
