@@ -1,0 +1,7 @@
+pytest
+pytest-cov
+pytest-html
+httpx
+streamlit
+pandas
+numpy   
