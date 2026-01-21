@@ -4,4 +4,7 @@ pytest-html
 httpx
 streamlit
 pandas
-numpy   
+numpy 
+fastapi
+uvicorn
+streamlit
