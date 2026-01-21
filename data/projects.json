@@ -1,85 +1,30 @@
 {
-  "last_id": 17,
+  "last_id": 5,
   "items": [
     {
+      "id": 1,
+      "name": "Prosjekt Delta-56",
+      "hourly_rate": 1600
+    },
+    {
       "id": 2,
-      "name": "Prosjekt Beta-27",
-      "hourly_rate": 1500
+      "name": "Prosjekt Alpha-98",
+      "hourly_rate": 1100
     },
     {
       "id": 3,
-      "name": "Prosjekt Beta-42",
+      "name": "Prosjekt Omega-21",
       "hourly_rate": 1100
     },
     {
       "id": 4,
-      "name": "Prosjekt Omega-32",
-      "hourly_rate": 1600
-    },
-    {
-      "id": 5,
-      "name": "Prosjekt Delta-80",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 6,
-      "name": "Prosjekt Gamma-35",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 7,
-      "name": "Prosjekt Beta-24",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 8,
-      "name": "Prosjekt Gamma-60",
-      "hourly_rate": 1100
-    },
-    {
-      "id": 9,
-      "name": "Prosjekt Beta-14",
-      "hourly_rate": 1300
-    },
-    {
-      "id": 10,
-      "name": "Prosjekt Beta-16",
-      "hourly_rate": 1400
-    },
-    {
-      "id": 11,
-      "name": "Prosjekt Alpha-76",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 12,
-      "name": "Prosjekt Beta-90",
-      "hourly_rate": 1300
-    },
-    {
-      "id": 13,
-      "name": "Prosjekt Delta-67",
+      "name": "Prosjekt Alpha-25",
       "hourly_rate": 1200
     },
     {
-      "id": 14,
-      "name": "Prosjekt Beta-62",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 15,
-      "name": "Prosjekt Beta-61",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 16,
-      "name": "Prosjekt Gamma-94",
-      "hourly_rate": 1500
-    },
-    {
-      "id": 17,
-      "name": "Prosjekt Beta-11",
-      "hourly_rate": 1500
+      "id": 5,
+      "name": "Prosjekt Omega-53",
+      "hourly_rate": 1100
     }
   ]
 }
