@@ -1,13 +1,45 @@
+
 # pages/EBIT_Trends.py
 import streamlit as st
 import requests
 import pandas as pd
 import datetime
+from datetime import date, timedelta
 
 BACKEND_URL = "http://localhost:8000"
 
 # Backend EBIT includes utlegg (same as main app.py)
 BACKEND_EBIT_INCLUDES_UTLEGG = False
+
+# ---- Plotly: robust import (app feiler ikke hvis plotly mangler) ----
+try:
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except Exception:
+    go = None  # type: ignore
+    PLOTLY_AVAILABLE = False
+
+# ---- Kompakt standardhøyde for grafer ----
+CHART_HEIGHT = 360
+
+# ---- Arbeidsdager (man–fre) for måned/år: enkel norsk kalender uten røddager ----
+
+
+def business_days_in_month(year: int, month: int) -> int:
+    """Antall arbeidsdager (man–fre) i gitt måned/år (uten røddager)."""
+    first_day = date(year, month, 1)
+    if month == 12:
+        last_day = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = date(year, month + 1, 1) - timedelta(days=1)
+    total = (last_day - first_day).days + 1
+    return sum(1 for d in range(total) if (first_day + timedelta(days=d)).weekday() < 5)
+
+
+def business_days_in_year(year: int) -> int:
+    """Antall arbeidsdager (man–fre) i hele året (uten røddager)."""
+    return sum(business_days_in_month(year, m) for m in range(1, 13))
+
 
 st.set_page_config(page_title="EBIT Trends", page_icon="📈", layout="wide")
 st.title("📈 EBIT Trends – Månedlig utvikling")
@@ -56,8 +88,8 @@ except Exception as e:
 
 try:
     settings = fetch_settings()
-except Exception as e:
-    st.warning(f"Kunne ikke hente innstillinger, bruker defaults")
+except Exception:
+    st.warning("Kunne ikke hente innstillinger, bruker defaults")
     settings = {"pex_pct": 0.32, "expense_pct": 0.40,
                 "yearly_work_hours": 1625}
 
@@ -99,24 +131,18 @@ st.subheader("1. Velg tidsperiode")
 
 col1, col2, col3 = st.columns(3)
 
-months_list = ["Januar", "Februar", "Mars", "April", "Mai", "Juni",
-               "Juli", "August", "September", "Oktober", "November", "Desember"]
+months_list = [
+    "Januar", "Februar", "Mars", "April", "Mai", "Juni",
+    "Juli", "August", "September", "Oktober", "November", "Desember"
+]
 
 with col1:
     start_month = st.selectbox(
-        "Start måned",
-        options=months_list,
-        index=0,
-        key="start_month"
-    )
+        "Start måned", options=months_list, index=0, key="start_month")
 
 with col2:
     end_month = st.selectbox(
-        "Slutt måned",
-        options=months_list,
-        index=11,
-        key="end_month"
-    )
+        "Slutt måned", options=months_list, index=11, key="end_month")
 
 with col3:
     year = st.number_input("År", min_value=2020,
@@ -141,25 +167,18 @@ if hovedside_rows:
         project_by_id[pid]["name"] for pid in unique_project_ids if pid in project_by_id
     ])
 else:
-    available_consultant_names = []
-    available_project_names = []
+    available_consultant_names, available_project_names = [], []
 
 with col1:
     consultant_names_options = ["Alle"] + available_consultant_names
     selected_consultants = st.multiselect(
-        "Konsulenter",
-        options=consultant_names_options,
-        default=["Alle"],
-        key="selected_consultants"
+        "Konsulenter", options=consultant_names_options, default=["Alle"], key="selected_consultants"
     )
 
 with col2:
     project_names_options = ["Alle"] + available_project_names
     selected_projects = st.multiselect(
-        "Prosjekter",
-        options=project_names_options,
-        default=["Alle"],
-        key="selected_projects"
+        "Prosjekter", options=project_names_options, default=["Alle"], key="selected_projects"
     )
 
 # Resolve selected to IDs
@@ -182,7 +201,6 @@ else:
 # ========== Load settings from backend ==========
 yearly_hours = float(settings.get("yearly_work_hours", 1625))
 pex = float(settings.get("pex_pct", 0.32))
-expense_pct_fixed = float(settings.get("expense_pct", 0.40))
 
 # ========== Calculate EBIT for each month ==========
 st.subheader("3. Beregn trend")
@@ -198,10 +216,8 @@ with col1:
             st.error("Start måned må være før slutt måned")
             st.stop()
 
-        # Build results storage
         monthly_ebit_data = []
 
-        # For each month in the range
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -209,42 +225,38 @@ with col1:
             month_num = month_idx + 1
             month_name = months_list[month_idx]
 
-            progress = idx / (end_idx - start_idx + 1)
+            progress = (idx + 1) / (end_idx - start_idx + 1)
             progress_bar.progress(progress)
             status_text.text(f"Beregner {month_name}...")
 
-            # Get the first and last day of the month
-            if month_idx == 11:  # December
-                month_start = datetime.date(year, 12, 1)
-                month_end = datetime.date(year, 12, 31)
+            # Finn første/siste dag i måneden
+            if month_idx == 11:  # Desember
+                month_start = date(year, 12, 1)
+                month_end = date(year, 12, 31)
             else:
-                month_start = datetime.date(year, month_idx + 1, 1)
-                month_end = datetime.date(
-                    year, month_idx + 2, 1) - datetime.timedelta(days=1)
+                month_start = date(year, month_idx + 1, 1)
+                month_end = date(year, month_idx + 2, 1) - timedelta(days=1)
 
-            # Build assignments from hovedside rows that overlap with this month
+            # Bygg assignments for rader som overlapper denne måneden
             assignments = []
-            row_expense_pcts = {}  # Store actual expense_pct per row
+            row_expense_pcts = {}
 
             for row_idx, row in enumerate(hovedside_rows):
                 row_start = row.get("start_date")
                 row_end = row.get("end_date")
-
-                # Convert to date if needed
                 if isinstance(row_start, str):
-                    row_start = datetime.date.fromisoformat(row_start)
+                    row_start = date.fromisoformat(row_start)
                 if isinstance(row_end, str):
-                    row_end = datetime.date.fromisoformat(row_end)
+                    row_end = date.fromisoformat(row_end)
 
-                # Check if this row overlaps with the current month
+                # Hopper over rader som ikke overlapper måned
                 if row_start > month_end or row_end < month_start:
-                    # This consultant doesn't work in this month
                     continue
 
-                # Check if consultant/project is filtered
                 consultant_id = row.get("consultant_id")
                 project_id = row.get("project_id")
 
+                # Filtrering: kun de valgte konsulentene/prosjektene
                 if consultant_id not in filtered_consultant_ids or project_id not in filtered_project_ids:
                     continue
 
@@ -252,24 +264,20 @@ with col1:
                 work_pct_frac = max(
                     0.0, min(1.0, float(work_pct_percent) / 100.0))
 
-                # Use actual dates from hovedside but limit to this month
                 actual_start = max(row_start, month_start)
                 actual_end = min(row_end, month_end)
 
-                # Store the expense_pct for this row
                 utlegg_mode = row.get("utlegg_mode", "Prosent")
                 if utlegg_mode == "Manuelt":
-                    # For manual mode, get from session state
+                    # Summer manuelle utlegg fra hovedside for denne raden (tolkes som pr. måned)
                     manual_sum = 0.0
                     if row_idx < len(hovedside_manual_expenses):
-                        manual_sum = sum(
-                            float(x.get("amount", 0.0)) for x in hovedside_manual_expenses[row_idx]
-                        )
+                        manual_sum = sum(float(x.get("amount", 0.0))
+                                         for x in hovedside_manual_expenses[row_idx])
                     row_expense_pcts[row_idx] = ("manual", manual_sum)
                 else:
-                    # For percentage mode
-                    expense_pct = row.get("expense_pct", 0.0)
-                    row_expense_pcts[row_idx] = ("prosent", expense_pct)
+                    row_expense_pcts[row_idx] = (
+                        "prosent", row.get("expense_pct", 0.0))
 
                 assignments.append({
                     "row_index": row_idx,
@@ -284,8 +292,8 @@ with col1:
                     "expense_pct": row.get("expense_pct", 0.0),
                 })
 
+            # Ingen arbeid denne måneden
             if not assignments:
-                # No consultants work in this month, add zero values
                 monthly_ebit_data.append({
                     "Måned": month_name,
                     "Måned (num)": month_idx,
@@ -296,7 +304,6 @@ with col1:
                 })
                 continue
 
-            # Call backend
             payload = {
                 "assignments": assignments,
                 "yearly_work_hours": yearly_hours,
@@ -305,41 +312,58 @@ with col1:
             }
 
             try:
-                r = requests.post(f"{BACKEND_URL}/calculate-ebit",
-                                  json=payload, timeout=30)
+                r = requests.post(
+                    f"{BACKEND_URL}/calculate-ebit", json=payload, timeout=30)
                 r.raise_for_status()
                 data = r.json()
 
+                # ---- Arbeidsdagsbasert skalering til månedsnivå ----
+                bd_month = business_days_in_month(year, month_num)
+                bd_year = business_days_in_year(year)
+                month_weight = bd_month / bd_year if bd_year else 1.0
+
+                # Avdelingstall fra backend
                 dept = data.get("department", {}) or {}
                 dept_income = float(dept.get("income", 0.0))
                 dept_cost = float(dept.get("cost", 0.0))
                 dept_ebit_backend = float(
                     dept.get("ebit", dept_income - dept_cost))
 
-                # Calculate utlegg based on actual rows (not global expense_pct_fixed)
+                # Skaler avdelingstall til månedsnivå (arbeidsdager)
+                dept_income_m = dept_income * month_weight
+                dept_cost_m = dept_cost * month_weight
+                dept_ebit_backend_m = dept_ebit_backend * month_weight
+
+                # Skaler rad-inntekter for prosent-utlegg til månedsnivå
+                row_income_scaled = {}
+                for result in data.get("results", []):
+                    rid = result.get("row_index")
+                    rincome = float(result.get("income", 0.0))
+                    row_income_scaled[rid] = rincome * month_weight
+
+                # Utlegg:
+                #  - Manuelle: behandles som pr. måned (ikke skalert)
+                #  - Prosent: følger skalert månedsinntekt
                 utlegg_total = 0.0
-                for row_idx, expense_info in row_expense_pcts.items():
+                for ridx, expense_info in row_expense_pcts.items():
                     mode, value = expense_info
                     if mode == "manual":
-                        utlegg_total += value
-                    else:  # prosent
-                        # Find the income for this specific row
-                        for result in data.get("results", []):
-                            if result.get("row_index") == row_idx:
-                                row_income = float(result.get("income", 0.0))
-                                utlegg_total += row_income * value
-                                break
+                        utlegg_total += float(value)
+                    else:
+                        rincome_m = row_income_scaled.get(ridx, 0.0)
+                        utlegg_total += rincome_m * float(value)
 
+                # EBIT for visning (avdeling)
                 if BACKEND_EBIT_INCLUDES_UTLEGG:
-                    dept_ebit_final = dept_ebit_backend
+                    dept_ebit_final = dept_ebit_backend_m
                 else:
-                    dept_ebit_final = dept_ebit_backend - utlegg_total
+                    dept_ebit_final = dept_ebit_backend_m - utlegg_total
 
                 monthly_ebit_data.append({
                     "Måned": month_name,
                     "Måned (num)": month_idx,
-                    "Inntekt (kr)": dept_income,
-                    "Kostnad (kr)": dept_cost,
+                    "Inntekt (kr)": dept_income_m,
+                    "Kostnad (kr)": dept_cost_m,
                     "Utlegg (kr)": utlegg_total,
                     "EBIT (kr)": dept_ebit_final,
                 })
@@ -351,11 +375,8 @@ with col1:
         progress_bar.progress(1.0)
         status_text.text("✓ Ferdig!")
 
-        # Store results in session state
-        if monthly_ebit_data:
-            st.session_state.ebit_trends_results = monthly_ebit_data
-        else:
-            st.session_state.ebit_trends_results = None
+        # Lagre resultater i session state
+        st.session_state.ebit_trends_results = monthly_ebit_data if monthly_ebit_data else None
 
 with col2:
     if st.button("🗑️ Slett resultater"):
@@ -366,190 +387,144 @@ with col2:
 if st.session_state.ebit_trends_results:
     monthly_ebit_data = st.session_state.ebit_trends_results
 
-    # Create DataFrame
-    if monthly_ebit_data:
-        df = pd.DataFrame(monthly_ebit_data)
+    # DataFrame
+    df = pd.DataFrame(
+        monthly_ebit_data) if monthly_ebit_data else pd.DataFrame()
 
-        # Display results
+    if not df.empty:
         st.success("✓ Beregning fullført!")
 
+        # ---- Avledede KPI-er ----
+        # EBIT % (måned) = EBIT / Inntekt * 100, beskytt mot deling på null
+        df["EBIT % (mnd)"] = df.apply(
+            lambda r: (r["EBIT (kr)"] / r["Inntekt (kr)"] * 100.0) if r["Inntekt (kr)"] else 0.0, axis=1
+        )
+        # YTD: kumulative tall og kumulativ EBIT %
+        df["EBIT (kr) YTD"] = df["EBIT (kr)"].cumsum()
+        df["Inntekt (kr) YTD"] = df["Inntekt (kr)"].cumsum()
+        df["EBIT % (YTD)"] = df.apply(
+            lambda r: (r["EBIT (kr) YTD"] / r["Inntekt (kr) YTD"] * 100.0) if r["Inntekt (kr) YTD"] else 0.0, axis=1
+        )
+
+        # ---- Tabell (formatert for lesbarhet) ----
         st.subheader("Månedlige resultater")
-
-        # Format display (create a copy for display, keep original for calculations)
         display_df = df.copy()
-        display_df["Inntekt (kr)"] = display_df["Inntekt (kr)"].apply(
-            lambda x: f"{x:,.0f}".replace(",", " "))
-        display_df["Kostnad (kr)"] = display_df["Kostnad (kr)"].apply(
-            lambda x: f"{x:,.0f}".replace(",", " "))
-        display_df["Utlegg (kr)"] = display_df["Utlegg (kr)"].apply(
-            lambda x: f"{x:,.0f}".replace(",", " "))
-        display_df["EBIT (kr)"] = display_df["EBIT (kr)"].apply(
-            lambda x: f"{x:,.0f}".replace(",", " "))
+        for col in ["Inntekt (kr)", "Kostnad (kr)", "Utlegg (kr)", "EBIT (kr)", "EBIT (kr) YTD", "Inntekt (kr) YTD"]:
+            display_df[col] = display_df[col].apply(
+                lambda x: f"{x:,.0f}".replace(",", " "))
+        display_df["EBIT % (mnd)"] = display_df["EBIT % (mnd)"].map(
+            lambda x: f"{x:.1f}%")
+        display_df["EBIT % (YTD)"] = display_df["EBIT % (YTD)"].map(
+            lambda x: f"{x:.1f}%")
 
-        st.dataframe(display_df[["Måned", "Inntekt (kr)", "Kostnad (kr)", "Utlegg (kr)", "EBIT (kr)"]],
-                     use_container_width=True)
+        st.dataframe(
+            display_df[[
+                "Måned", "Inntekt (kr)", "Kostnad (kr)", "Utlegg (kr)",
+                "EBIT (kr)", "EBIT % (mnd)", "EBIT (kr) YTD", "Inntekt (kr) YTD", "EBIT % (YTD)"
+            ]],
+            use_container_width=True
+        )
 
-        # Chart: EBIT trend
-        try:
-            import plotly.graph_objects as go
+        # ===========================
+        #   GRAFER (OPPDELING I 2 x 2)
+        # ===========================
+        if not PLOTLY_AVAILABLE:
+            st.info(
+                "Plotly er ikke installert. Kjør `pip install plotly`, og sørg for at VS Code bruker riktig venv.")
+        else:
+            # ---------- RAD 1: MÅNEDLIG ----------
+            c1, c2 = st.columns(2)
 
-            fig = go.Figure()
+            with c1:
+                # Venstre: EBIT trend – månedlig
+                fig_m_ebit = go.Figure()
+                fig_m_ebit.add_trace(go.Scatter(
+                    x=df["Måned"], y=df["EBIT (kr)"], mode="lines+markers",
+                    name="EBIT (inkl. utlegg)", line=dict(color="#2ecc71", width=3),
+                    marker=dict(size=8, color="#27ae60"), fill="tozeroy",
+                    fillcolor="rgba(46, 204, 113, 0.10)"
+                ))
+                fig_m_ebit.add_hline(y=0, line_dash="dash", line_color="red", line_width=2,
+                                     annotation_text="Break-even", annotation_position="right")
+                fig_m_ebit.update_layout(
+                    title="EBIT trend – månedlig", xaxis_title="Måned", yaxis_title="EBIT (NOK)",
+                    hovermode="x unified", height=CHART_HEIGHT, template="plotly_white", showlegend=False
+                )
+                st.plotly_chart(fig_m_ebit, use_container_width=True)
 
-            # EBIT line
-            fig.add_trace(go.Scatter(
-                x=df["Måned"],
-                y=df["EBIT (kr)"],
-                mode='lines+markers',
-                name='EBIT (inkl. utlegg)',
-                line=dict(color='#2ecc71', width=3),
-                marker=dict(size=10, color='#27ae60'),
-                fill='tozeroy',
-                fillcolor='rgba(46, 204, 113, 0.1)'
-            ))
+            with c2:
+                # Høyre: EBIT % trend – månedlig
+                fig_m_ebitpct = go.Figure()
+                fig_m_ebitpct.add_trace(go.Scatter(
+                    x=df["Måned"], y=df["EBIT % (mnd)"], mode="lines+markers",
+                    name="EBIT % (mnd)", line=dict(color="#8e44ad", width=3),
+                    marker=dict(size=8, color="#9b59b6"),
+                ))
+                fig_m_ebitpct.add_hline(
+                    y=0, line_dash="dot", line_color="#7f8c8d", line_width=1)
+                fig_m_ebitpct.update_layout(
+                    title="EBIT % trend – månedlig", xaxis_title="Måned", yaxis_title="EBIT (%)",
+                    hovermode="x unified", height=CHART_HEIGHT, template="plotly_white", showlegend=False
+                )
+                st.plotly_chart(fig_m_ebitpct, use_container_width=True)
 
-            # Add a zero line for break-even
-            fig.add_hline(y=0, line_dash="dash", line_color="red",
-                          line_width=2, annotation_text="Break-even", annotation_position="right")
+            # ---------- RAD 2: YTD ----------
+            c3, c4 = st.columns(2)
 
-            fig.update_layout(
-                title="EBIT Trend – Månedlig utvikling",
-                xaxis_title="Måned",
-                yaxis_title="EBIT (NOK)",
-                hovermode='x unified',
-                height=450,
-                template='plotly_white',
-                font=dict(size=12),
-                showlegend=True
-            )
+            with c3:
+                # Venstre: EBIT trend – YTD (kumulativ)
+                fig_ytd_ebit = go.Figure()
+                fig_ytd_ebit.add_trace(go.Scatter(
+                    x=df["Måned"], y=df["EBIT (kr) YTD"], mode="lines+markers",
+                    name="EBIT YTD", line=dict(color="#16a085", width=3),
+                    marker=dict(size=8, color="#1abc9c"), fill="tozeroy",
+                    fillcolor="rgba(26, 188, 156, 0.10)"
+                ))
+                fig_ytd_ebit.add_hline(
+                    y=0, line_dash="dash", line_color="red", line_width=2)
+                fig_ytd_ebit.update_layout(
+                    title="EBIT trend – YTD", xaxis_title="Måned", yaxis_title="EBIT (NOK) – kumulativ",
+                    hovermode="x unified", height=CHART_HEIGHT, template="plotly_white", showlegend=False
+                )
+                st.plotly_chart(fig_ytd_ebit, use_container_width=True)
 
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.info(f"Kunne ikke tegne EBIT trend graf: {e}")
+            with c4:
+                # Høyre: EBIT % trend – YTD (kumulativ)
+                fig_ytd_ebitpct = go.Figure()
+                fig_ytd_ebitpct.add_trace(go.Scatter(
+                    x=df["Måned"], y=df["EBIT % (YTD)"], mode="lines+markers",
+                    name="EBIT % YTD", line=dict(color="#c0392b", width=3),
+                    marker=dict(size=8, color="#e74c3c"),
+                ))
+                fig_ytd_ebitpct.add_hline(
+                    y=0, line_dash="dot", line_color="#7f8c8d", line_width=1)
+                fig_ytd_ebitpct.update_layout(
+                    title="EBIT % trend – YTD", xaxis_title="Måned", yaxis_title="EBIT (%) – kumulativ",
+                    hovermode="x unified", height=CHART_HEIGHT, template="plotly_white", showlegend=False
+                )
+                st.plotly_chart(fig_ytd_ebitpct, use_container_width=True)
 
-        # Chart: Income vs Cost comparison
-        try:
-            import plotly.graph_objects as go
-
-            fig = go.Figure()
-
-            fig.add_trace(go.Bar(
-                x=df["Måned"],
-                y=df["Inntekt (kr)"],
-                name='Inntekt',
-                marker_color='#3498db',
-                text=df["Inntekt (kr)"].apply(
-                    lambda x: f'{x:,.0f}'.replace(',', ' ')),
-                textposition='outside',
-                hovertemplate='<b>Inntekt</b><br>%{text}<extra></extra>'
-            ))
-
-            fig.add_trace(go.Bar(
-                x=df["Måned"],
-                y=df["Kostnad (kr)"],
-                name='Kostnad',
-                marker_color='#e74c3c',
-                text=df["Kostnad (kr)"].apply(
-                    lambda x: f'{x:,.0f}'.replace(',', ' ')),
-                textposition='outside',
-                hovertemplate='<b>Kostnad</b><br>%{text}<extra></extra>'
-            ))
-
-            fig.add_trace(go.Scatter(
-                x=df["Måned"],
-                y=df["EBIT (kr)"],
-                mode='lines+markers',
-                name='EBIT (inkl. utlegg)',
-                line=dict(color='#2ecc71', width=3),
-                marker=dict(size=10),
-                yaxis='y2',
-                hovertemplate='<b>EBIT</b><br>%{y:,.0f} kr<extra></extra>'
-            ))
-
-            fig.update_layout(
-                title="Inntekt, Kostnad & EBIT – Månedlig oversikt",
-                xaxis_title="Måned",
-                yaxis_title="Inntekt & Kostnad (NOK)",
-                yaxis2=dict(
-                    title="EBIT (NOK)",
-                    overlaying="y",
-                    side="right"
-                ),
-                hovermode='x unified',
-                height=500,
-                template='plotly_white',
-                barmode='group',
-                font=dict(size=11)
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.info(f"Kunne ikke tegne sammenligning graf: {e}")
-
-        # Chart: Detailed breakdown per month
-        try:
-            import plotly.graph_objects as go
-
-            fig = go.Figure()
-
-            fig.add_trace(go.Bar(
-                x=df["Måned"],
-                y=df["Inntekt (kr)"],
-                name='Inntekt',
-                marker_color='#3498db'
-            ))
-
-            fig.add_trace(go.Bar(
-                x=df["Måned"],
-                y=-df["Kostnad (kr)"],
-                name='Kostnad',
-                marker_color='#e74c3c'
-            ))
-
-            fig.add_trace(go.Bar(
-                x=df["Måned"],
-                y=-df["Utlegg (kr)"],
-                name='Utlegg',
-                marker_color='#f39c12'
-            ))
-
-            fig.update_layout(
-                title="Inntekt minus Kostnad og Utlegg – Månedsvis",
-                xaxis_title="Måned",
-                yaxis_title="Beløp (NOK)",
-                hovermode='x unified',
-                height=450,
-                template='plotly_white',
-                barmode='relative',
-                font=dict(size=11)
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.info(f"Kunne ikke tegne detalj graf: {e}")
-
-        # Summary statistics (using original numeric df, not formatted display_df)
+        # ---- Sammendragskort + nedlasting ----
         st.subheader("Sammenfattende statistikk")
-
-        col1, col2, col3, col4 = st.columns(4)
-
+        c1, c2, c3, c4 = st.columns(4)
         avg_ebit = df["EBIT (kr)"].mean()
         max_ebit = df["EBIT (kr)"].max()
         min_ebit = df["EBIT (kr)"].min()
         total_ebit = df["EBIT (kr)"].sum()
-
-        with col1:
+        with c1:
             st.metric("Gjennomsnitt EBIT",
                       f"{avg_ebit:,.0f} kr".replace(",", " "))
-        with col2:
+        with c2:
             st.metric("Høyeste EBIT", f"{max_ebit:,.0f} kr".replace(",", " "))
-        with col3:
+        with c3:
             st.metric("Laveste EBIT", f"{min_ebit:,.0f} kr".replace(",", " "))
-        with col4:
+        with c4:
             st.metric("Total EBIT", f"{total_ebit:,.0f} kr".replace(",", " "))
 
-        # Download CSV (using original numeric df)
-        csv = df[["Måned", "Inntekt (kr)", "Kostnad (kr)",
-                 "Utlegg (kr)", "EBIT (kr)"]].to_csv(index=False)
+        csv = df[[
+            "Måned", "Inntekt (kr)", "Kostnad (kr)", "Utlegg (kr)",
+            "EBIT (kr)", "EBIT % (mnd)", "Inntekt (kr) YTD", "EBIT (kr) YTD", "EBIT % (YTD)"
+        ]].to_csv(index=False)
         st.download_button(
             label="📥 Last ned CSV",
             data=csv,

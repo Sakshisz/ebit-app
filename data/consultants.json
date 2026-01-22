@@ -1,35 +1,23 @@
 {
-  "last_id": 5,
+  "last_id": 8,
   "items": [
     {
-      "id": 1,
-      "name": "Eva Nordmann",
-      "salary": 818122,
-      "default_utilization": 0.79
+      "id": 6,
+      "name": "marius l",
+      "salary": 815000.0,
+      "default_utilization": 1.0
     },
     {
-      "id": 2,
-      "name": "Sofie Andersen",
-      "salary": 619230,
-      "default_utilization": 0.72
+      "id": 7,
+      "name": "synne b",
+      "salary": 900000.0,
+      "default_utilization": 1.0
     },
     {
-      "id": 3,
-      "name": "Ola Nordmann",
-      "salary": 893666,
-      "default_utilization": 0.73
-    },
-    {
-      "id": 4,
-      "name": "Henrik Larsen",
-      "salary": 779213,
-      "default_utilization": 0.79
-    },
-    {
-      "id": 5,
-      "name": "Eva Larsen",
-      "salary": 682132,
-      "default_utilization": 0.7
+      "id": 8,
+      "name": "axel",
+      "salary": 875000.0,
+      "default_utilization": 1.0
     }
   ]
 }

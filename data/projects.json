@@ -1,16 +1,6 @@
 {
-  "last_id": 5,
+  "last_id": 11,
   "items": [
-    {
-      "id": 1,
-      "name": "Prosjekt Delta-56",
-      "hourly_rate": 1600
-    },
-    {
-      "id": 2,
-      "name": "Prosjekt Alpha-98",
-      "hourly_rate": 1100
-    },
     {
       "id": 3,
       "name": "Prosjekt Omega-21",
@@ -25,6 +15,36 @@
       "id": 5,
       "name": "Prosjekt Omega-53",
       "hourly_rate": 1100
+    },
+    {
+      "id": 6,
+      "name": "eika",
+      "hourly_rate": 1200.0
+    },
+    {
+      "id": 7,
+      "name": "imdi",
+      "hourly_rate": 1200.0
+    },
+    {
+      "id": 8,
+      "name": "glamox",
+      "hourly_rate": 1350.0
+    },
+    {
+      "id": 9,
+      "name": "eika",
+      "hourly_rate": 1200.0
+    },
+    {
+      "id": 10,
+      "name": "imdi",
+      "hourly_rate": 1100.0
+    },
+    {
+      "id": 11,
+      "name": "glamox",
+      "hourly_rate": 1400.0
     }
   ]
 }
