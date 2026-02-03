@@ -1,23 +1,17 @@
 {
-  "last_id": 8,
+  "last_id": 2,
   "items": [
     {
-      "id": 6,
-      "name": "marius l",
-      "salary": 815000.0,
-      "default_utilization": 1.0
+      "id": 1,
+      "name": "Test Consultant 1",
+      "salary": 600000,
+      "default_utilization": 0.8
     },
     {
-      "id": 7,
-      "name": "synne b",
-      "salary": 900000.0,
-      "default_utilization": 1.0
-    },
-    {
-      "id": 8,
-      "name": "axel",
-      "salary": 875000.0,
-      "default_utilization": 1.0
+      "id": 2,
+      "name": "Test Consultant 2",
+      "salary": 700000,
+      "default_utilization": 0.85
     }
   ]
 }

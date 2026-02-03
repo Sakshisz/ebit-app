@@ -99,10 +99,16 @@ class ProjectUpdate(BaseModel):
 
 
 class Assignment(BaseModel):
+    row_index: Optional[int] = None
     consultant_id: int
     project_id: int
     utilization: float = Field(ge=0, le=1)
     project_percent: float = Field(ge=0, le=1)
+    consultant_work_pct: Optional[float] = Field(default=1.0, ge=0, le=1)
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    utlegg_mode: Optional[str] = None
+    expense_pct: Optional[float] = Field(default=None, ge=0)
 
 
 class CalculateInput(BaseModel):
@@ -110,6 +116,7 @@ class CalculateInput(BaseModel):
     yearly_work_hours: Optional[float] = None
     pex_pct: Optional[float] = None
     expense_pct: Optional[float] = None
+    month: Optional[int] = Field(default=None, ge=1, le=12)
 
 
 class Settings(BaseModel):
