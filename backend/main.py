@@ -55,9 +55,15 @@ _ensure_data()
 # ------------------------------
 app = FastAPI(title="EBIT Backend")
 
+# CORS settings - use environment variable for production
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:8501,http://127.0.0.1:8501"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # stram inn i prod
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

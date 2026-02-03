@@ -3,8 +3,10 @@
 import streamlit as st
 import requests
 import datetime
+import os
 
-BACKEND_URL = "http://localhost:8000"
+# Use environment variable for backend URL in production
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # Toggle: send month as index (1–12) or as Norwegian name ("Januar" ...)
 SEND_MONTH_AS_INDEX = True
