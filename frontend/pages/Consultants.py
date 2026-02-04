@@ -3,8 +3,10 @@
 import streamlit as st
 import requests
 import pandas as pd
+import os
 
-BACKEND_URL = "http://localhost:8000"
+# Use environment variable for backend URL in production
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 st.set_page_config(page_title="Konsulenter", page_icon="👤", layout="wide")
 st.title("👤 Konsulenter")
 

@@ -5,8 +5,10 @@ import requests
 import pandas as pd
 import datetime
 from datetime import date, timedelta
+import os
 
-BACKEND_URL = "http://localhost:8000"
+# Use environment variable for backend URL in production
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # Backend EBIT includes utlegg (same as main app.py)
 BACKEND_EBIT_INCLUDES_UTLEGG = False
